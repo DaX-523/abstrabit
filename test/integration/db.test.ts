@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { createTestDb } from "../helpers/testDb";
-import { schema } from "@/db";
+import { schema, rowsOf } from "@/db";
 import { sql } from "drizzle-orm";
 import type { Database } from "@/db";
 
@@ -20,10 +20,7 @@ describe("schema migrations", () => {
     const result = await db.execute<{ table_name: string }>(
       sql`select table_name from information_schema.tables where table_schema = 'public' order by table_name`,
     );
-    // postgres-js returns an array-like RowList directly; PGlite returns
-    // { rows }. Normalize so this test works against either driver.
-    const rowArray = Array.isArray(result) ? result : (result as { rows: { table_name: string }[] }).rows;
-    const names = rowArray.map((r) => r.table_name);
+    const names = rowsOf<{ table_name: string }>(result).map((r) => r.table_name);
     for (const expected of [
       "users",
       "sessions",

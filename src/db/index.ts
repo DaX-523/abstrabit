@@ -55,3 +55,13 @@ export function getDb(): Database {
 }
 
 export * as schema from "./schema";
+
+/**
+ * postgres-js's db.execute() returns an array-like RowList directly; PGlite's
+ * returns { rows }. Both drivers are used (see above), so any raw sql`` query
+ * needs to go through this to work against either.
+ */
+export function rowsOf<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  return (result as { rows: T[] }).rows;
+}

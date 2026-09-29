@@ -9,7 +9,7 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Auth: dashboard admins, DB-backed sessions, login throttling
@@ -262,3 +262,32 @@ export const jobAttempts = pgTable(
   },
   (t) => [index("job_attempts_job_idx").on(t.jobId)],
 );
+
+// ---------------------------------------------------------------------------
+// Relations (drizzle-level only, no migration needed) -- used by the
+// dashboard's live log to fetch an interaction together with the jobs it
+// spawned in one relational query, instead of N+1 lookups.
+// ---------------------------------------------------------------------------
+
+export const interactionsRelations = relations(interactions, ({ many }) => ({
+  jobs: many(jobs),
+}));
+
+export const jobsRelations = relations(jobs, ({ one, many }) => ({
+  interaction: one(interactions, { fields: [jobs.interactionId], references: [interactions.id] }),
+  attempts: many(jobAttempts),
+}));
+
+export const jobAttemptsRelations = relations(jobAttempts, ({ one }) => ({
+  job: one(jobs, { fields: [jobAttempts.jobId], references: [jobs.id] }),
+}));
+
+export const guildAdminsRelations = relations(guildAdmins, ({ one }) => ({
+  guild: one(guilds, { fields: [guildAdmins.guildId], references: [guilds.id] }),
+  user: one(users, { fields: [guildAdmins.userId], references: [users.id] }),
+}));
+
+export const reportsRelations = relations(reports, ({ one }) => ({
+  guild: one(guilds, { fields: [reports.guildId], references: [guilds.id] }),
+  interaction: one(interactions, { fields: [reports.interactionId], references: [interactions.id] }),
+}));

@@ -110,3 +110,25 @@ export async function getCurrentBotUser(): Promise<{ id: string; username: strin
   const res = await discordFetch(`/users/@me`);
   return res.json();
 }
+
+export async function getGuildRoles(guildId: string): Promise<
+  Array<{ id: string; permissions: string }>
+> {
+  const res = await discordFetch(`/guilds/${guildId}/roles`);
+  return res.json();
+}
+
+export async function getGuildMember(
+  guildId: string,
+  userId: string,
+): Promise<{ roles: string[] } | null> {
+  try {
+    const res = await discordFetch(`/guilds/${guildId}/members/${userId}`);
+    return res.json();
+  } catch (err) {
+    // The bot may have just been removed from the guild, or the member
+    // lookup 404s for another benign reason -- treat as "unknown", not fatal.
+    if (err instanceof PermanentError && err.httpStatus === 404) return null;
+    throw err;
+  }
+}

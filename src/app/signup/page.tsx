@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signupAction } from "@/app/actions/auth";
 import { getEnv } from "@/lib/env";
 
@@ -16,9 +17,9 @@ export default async function SignupPage({
         <p className="text-sm text-black/60 dark:text-white/60">
           Self-serve signup is turned off. Ask the admin for an account, or set ALLOW_SIGNUP=true.
         </p>
-        <a href="/login" className="text-sm underline">
+        <Link href="/login" className="text-sm underline">
           Back to sign in
-        </a>
+        </Link>
       </main>
     );
   }
@@ -72,7 +73,7 @@ export default async function SignupPage({
         </button>
       </form>
       <p className="text-sm text-black/60 dark:text-white/60">
-        Already have an account? <a href="/login" className="underline">Sign in</a>
+        Already have an account? <Link href="/login" className="underline">Sign in</Link>
       </p>
     </main>
   );

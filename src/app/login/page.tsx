@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { loginAction } from "@/app/actions/auth";
 
 export default async function LoginPage({
@@ -44,7 +45,7 @@ export default async function LoginPage({
         </button>
       </form>
       <p className="text-sm text-black/60 dark:text-white/60">
-        Need an account? <a href="/signup" className="underline">Sign up</a>
+        Need an account? <Link href="/signup" className="underline">Sign up</Link>
       </p>
     </main>
   );

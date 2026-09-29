@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "discord:register": "tsx scripts/register-commands.ts"
+    "discord:register": "tsx scripts/register-commands.ts",
+    "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

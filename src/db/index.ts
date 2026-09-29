@@ -57,6 +57,18 @@ export function getDb(): Database {
 export * as schema from "./schema";
 
 /**
+ * The subset of the drizzle client surface used by code that may run either
+ * against the top-level `db` or against a `tx` handed to it inside
+ * `db.transaction(async (tx) => ...)`. postgres-js's transaction object and
+ * its top-level database object are structurally close but not identical
+ * types (their `.transaction()` methods differ); code that only needs
+ * query/insert/update/delete/execute -- not to open its own nested
+ * transaction -- should take `Queryable` instead of `Database` so it can be
+ * called with either.
+ */
+export type Queryable = Pick<Database, "query" | "insert" | "update" | "delete" | "select" | "execute">;
+
+/**
  * postgres-js's db.execute() returns an array-like RowList directly; PGlite's
  * returns { rows }. Both drivers are used (see above), so any raw sql`` query
  * needs to go through this to work against either.

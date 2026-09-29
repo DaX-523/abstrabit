@@ -1,10 +1,16 @@
 import type { HandlerRegistry } from "@/lib/jobs/runner";
+import { replyHandler } from "./reply";
+import { channelPostHandler } from "./channelPost";
+import { mirrorHandler } from "./mirror";
 
 /**
- * The live handler registry, wired up incrementally as each job kind's real
- * logic lands (reply/channel_post/mirror in the core /report pipeline,
- * triage/ai_enrich with the AI stretch goal, status_followup for /status).
- * Empty for now -- any job claimed before a kind's handler exists is
- * correctly dead-lettered by the runner rather than silently dropped.
+ * The live handler registry. `triage` and `ai_enrich` (AI stretch goal) and
+ * `status_followup` are wired up in later steps; any job of a kind with no
+ * handler here is correctly dead-lettered by the runner rather than
+ * silently dropped (see runner.ts).
  */
-export const handlers: HandlerRegistry = {};
+export const handlers: HandlerRegistry = {
+  reply: replyHandler,
+  channel_post: channelPostHandler,
+  mirror: mirrorHandler,
+};

@@ -1,5 +1,5 @@
 import { eq, inArray, sql } from "drizzle-orm";
-import { schema, rowsOf, type Database } from "@/db";
+import { schema, rowsOf, type Database, type Queryable } from "@/db";
 import { encrypt } from "@/lib/crypto";
 
 export type JobRow = typeof schema.jobs.$inferSelect;
@@ -28,7 +28,7 @@ export interface EnqueueParams {
  * The payload is encrypted at rest because it may carry the interaction
  * token, a 15-minute-lived credential.
  */
-export async function enqueueJob(db: Database, params: EnqueueParams): Promise<void> {
+export async function enqueueJob(db: Queryable, params: EnqueueParams): Promise<void> {
   await db
     .insert(schema.jobs)
     .values({

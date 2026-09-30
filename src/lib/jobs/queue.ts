@@ -64,11 +64,17 @@ export async function claimDueJobs(db: Database, opts: ClaimOptions = {}): Promi
     // that crashed mid-job leaves its row at status "running" forever
     // otherwise; the locked_until check is what actually excludes jobs a
     // *live* worker is currently holding.
+    // Interpolate as ISO strings, not raw Date objects: postgres.js's
+    // extended/prepared-statement protocol -- used for tx.execute() inside a
+    // transaction, unlike a plain top-level sql`` call -- can't serialize a
+    // bare Date as a bind parameter (throws ERR_INVALID_ARG_TYPE). This only
+    // showed up against real Postgres (Supabase), not PGlite in tests.
+    const nowIso = now.toISOString();
     const candidates = await tx.execute<{ id: string }>(sql`
       select id from jobs
       where status in ('pending', 'retrying', 'running')
-        and run_at <= ${now}
-        and (locked_until is null or locked_until < ${now})
+        and run_at <= ${nowIso}::timestamptz
+        and (locked_until is null or locked_until < ${nowIso}::timestamptz)
       order by run_at
       limit ${limit}
       for update skip locked

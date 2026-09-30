@@ -83,16 +83,22 @@ export async function testChannelAction(formData: FormData): Promise<void> {
     redirectWithParam(guildId, "error", "Set a report channel first.");
   }
 
+  // redirect() works by throwing -- so the redirect call itself must NOT be
+  // inside this try, or its own throw gets caught by the catch below and a
+  // genuinely successful send gets reported as a failure. Do the network
+  // call in try/catch, record the outcome, then redirect exactly once.
+  let outcome: { key: "success" | "error"; message: string };
   try {
     await postChannelMessage(guild.reportChannelId!, {
       content: "✅ Test message from the dashboard — this channel is wired up correctly.",
       allowed_mentions: { parse: [] },
     });
-    redirectWithParam(guildId, "success", "Test message sent to the report channel.");
+    outcome = { key: "success", message: "Test message sent to the report channel." };
   } catch (err) {
     log.error("test channel post failed", { guildId, error: err instanceof Error ? err.message : String(err) });
-    redirectWithParam(guildId, "error", "Couldn't post to that channel. Check the bot still has access.");
+    outcome = { key: "error", message: "Couldn't post to that channel. Check the bot still has access." };
   }
+  redirectWithParam(guildId, outcome.key, outcome.message);
 }
 
 export async function testMirrorAction(formData: FormData): Promise<void> {
@@ -104,15 +110,19 @@ export async function testMirrorAction(formData: FormData): Promise<void> {
     redirectWithParam(guildId, "error", "Set a mirror URL first.");
   }
 
+  // See the comment in testChannelAction: redirect() must happen exactly
+  // once, after this try/catch, never inside it.
+  let outcome: { key: "success" | "error"; message: string };
   try {
     const { decrypt } = await import("@/lib/crypto");
     await sendMirror(decrypt(guild.mirrorUrlEnc!), {
       title: "Test notification",
       lines: ["This is a test from the dashboard — your mirror is wired up correctly."],
     });
-    redirectWithParam(guildId, "success", "Test message sent to the mirror.");
+    outcome = { key: "success", message: "Test message sent to the mirror." };
   } catch (err) {
     log.error("test mirror post failed", { guildId, error: err instanceof Error ? err.message : String(err) });
-    redirectWithParam(guildId, "error", "Couldn't post to the mirror. Check the webhook is still valid.");
+    outcome = { key: "error", message: "Couldn't post to the mirror. Check the webhook is still valid." };
   }
+  redirectWithParam(guildId, outcome.key, outcome.message);
 }

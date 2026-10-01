@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f4f5;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --border: #e4e4e7;
+  --muted: #71717a;
+  --accent: #5865f2; /* Discord blurple */
+  --accent-hover: #4752c4;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #09090b;
+    --foreground: #fafafa;
+    --surface: #18181b;
+    --border: #27272a;
+    --muted: #a1a1aa;
+    --accent: #7983f5;
+    --accent-hover: #929af7;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Tailwind v4's preflight resets buttons to the default cursor. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+select:not(:disabled),
+summary {
+  cursor: pointer;
+}
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
+    disabled:opacity-60;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-border bg-surface p-5 shadow-sm;
+  }
+  .input {
+    @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition
+      placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/30;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover disabled:hover:bg-accent;
+  }
+  .btn-secondary {
+    @apply btn border border-border bg-surface hover:bg-foreground/5;
+  }
+  .link {
+    @apply cursor-pointer font-medium text-accent underline-offset-4 hover:underline;
+  }
+  .alert-error {
+    @apply rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800
+      dark:border-red-900 dark:bg-red-950 dark:text-red-200;
+  }
+  .alert-success {
+    @apply rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800
+      dark:border-green-900 dark:bg-green-950 dark:text-green-200;
+  }
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loginAction } from "@/app/actions/auth";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function LoginPage({
   searchParams,
@@ -9,14 +10,17 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">Sign in</h1>
+    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-5 px-4">
+      <div>
+        <h1 className="text-2xl font-semibold">Sign in</h1>
+        <p className="mt-1 text-sm text-muted">to manage your Discord server&apos;s bot.</p>
+      </div>
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+        <p role="alert" className="alert-error">
           {error}
         </p>
       )}
-      <form action={loginAction} className="flex flex-col gap-4">
+      <form action={loginAction} className="card flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
           Email
           <input
@@ -24,7 +28,7 @@ export default async function LoginPage({
             name="email"
             required
             autoComplete="email"
-            className="rounded-md border border-black/10 px-3 py-2 dark:border-white/20"
+            className="input"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -34,18 +38,13 @@ export default async function LoginPage({
             name="password"
             required
             autoComplete="current-password"
-            className="rounded-md border border-black/10 px-3 py-2 dark:border-white/20"
+            className="input"
           />
         </label>
-        <button
-          type="submit"
-          className="rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background"
-        >
-          Sign in
-        </button>
+        <SubmitButton pendingText="Signing in…">Sign in</SubmitButton>
       </form>
-      <p className="text-sm text-black/60 dark:text-white/60">
-        Need an account? <Link href="/signup" className="underline">Sign up</Link>
+      <p className="text-sm text-muted">
+        Need an account? <Link href="/signup" className="link">Sign up</Link>
       </p>
     </main>
   );

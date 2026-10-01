@@ -5,6 +5,7 @@ import { requireGuildAdmin, AuthError } from "@/lib/auth";
 import { maskUrl, decrypt } from "@/lib/crypto";
 import { listPostableChannels } from "@/lib/discord/channels";
 import { log } from "@/lib/log";
+import { SubmitButton } from "@/components/SubmitButton";
 import { updateChannelAction, updateMirrorAction, testChannelAction, testMirrorAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -42,37 +43,37 @@ export default async function SettingsPage({
   const mirrorUrlPreview = guild.mirrorUrlEnc ? maskUrl(decrypt(guild.mirrorUrlEnc)) : null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-4 py-10">
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-4 py-10">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{guild.name}</h1>
-        <Link href="/dashboard" className="text-sm underline">
+        <Link href="/dashboard" className="link text-sm">
           ← All servers
         </Link>
       </div>
 
       {success && (
-        <p role="status" className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950 dark:text-green-300">
+        <p role="status" className="alert-success">
           {success}
         </p>
       )}
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+        <p role="alert" className="alert-error">
           {error}
         </p>
       )}
 
-      <nav className="flex gap-4 text-sm">
-        <Link href={`/dashboard/${guildId}`} className="underline">
+      <nav className="flex gap-1 border-b border-border text-sm">
+        <Link href={`/dashboard/${guildId}`} className="-mb-px border-b-2 border-transparent px-3 py-2 text-muted hover:text-foreground">
           Live log
         </Link>
-        <Link href={`/dashboard/${guildId}/settings`} className="font-medium">
+        <Link href={`/dashboard/${guildId}/settings`} aria-current="page" className="-mb-px border-b-2 border-accent px-3 py-2 font-medium">
           Settings
         </Link>
       </nav>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-medium">Report channel</h2>
-        <p className="text-sm text-black/60 dark:text-white/60">
+      <section className="card flex flex-col gap-3">
+        <h2 className="font-semibold">Report channel</h2>
+        <p className="text-sm text-muted">
           Where the bot posts each /report submission.
         </p>
         {channelsError ? (
@@ -83,7 +84,7 @@ export default async function SettingsPage({
             <select
               name="channelId"
               defaultValue={guild.reportChannelId ?? ""}
-              className="rounded-md border border-black/10 px-3 py-2 text-sm dark:border-white/20"
+              className="input w-auto"
             >
               <option value="">— none —</option>
               {postableChannels.map((c) => (
@@ -92,17 +93,15 @@ export default async function SettingsPage({
                 </option>
               ))}
             </select>
-            <button type="submit" className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background">
-              Save
-            </button>
+            <SubmitButton pendingText="Saving…">Save</SubmitButton>
           </form>
         )}
         {guild.reportChannelId && (
           <form action={testChannelAction}>
             <input type="hidden" name="guildId" value={guildId} />
-            <button type="submit" className="text-sm underline">
+            <SubmitButton variant="secondary" pendingText="Sending…">
               Send test message
-            </button>
+            </SubmitButton>
           </form>
         )}
         {postableChannels.length === 0 && !channelsError && (
@@ -113,14 +112,14 @@ export default async function SettingsPage({
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-medium">Mirror (second channel)</h2>
-        <p className="text-sm text-black/60 dark:text-white/60">
+      <section className="card flex flex-col gap-3">
+        <h2 className="font-semibold">Mirror (second channel)</h2>
+        <p className="text-sm text-muted">
           A Slack Incoming Webhook or a separate Discord channel webhook. Stored encrypted; only a
           masked preview is ever shown here.
         </p>
         {mirrorUrlPreview && (
-          <p className="text-sm font-mono">{mirrorUrlPreview}</p>
+          <p className="rounded-md bg-foreground/5 px-3 py-2 font-mono text-sm">{mirrorUrlPreview}</p>
         )}
         <form action={updateMirrorAction} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="guildId" value={guildId} />
@@ -128,18 +127,16 @@ export default async function SettingsPage({
             type="url"
             name="mirrorUrl"
             placeholder="https://hooks.slack.com/services/..."
-            className="min-w-64 flex-1 rounded-md border border-black/10 px-3 py-2 text-sm dark:border-white/20"
+            className="input min-w-64 flex-1"
           />
-          <button type="submit" className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background">
-            Save
-          </button>
+          <SubmitButton pendingText="Saving…">Save</SubmitButton>
         </form>
         {guild.mirrorUrlEnc && (
           <form action={testMirrorAction}>
             <input type="hidden" name="guildId" value={guildId} />
-            <button type="submit" className="text-sm underline">
+            <SubmitButton variant="secondary" pendingText="Sending…">
               Send test message
-            </button>
+            </SubmitButton>
           </form>
         )}
       </section>

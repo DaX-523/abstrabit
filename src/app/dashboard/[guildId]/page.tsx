@@ -24,19 +24,19 @@ export default async function GuildDashboardPage({ params }: { params: Promise<{
   const initialItems = await getRecentInteractions(db, guildId);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-4 py-10">
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-10">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{guild.name}</h1>
-        <Link href="/dashboard" className="text-sm underline">
+        <Link href="/dashboard" className="link text-sm">
           ← All servers
         </Link>
       </div>
 
-      <nav className="flex gap-4 text-sm">
-        <Link href={`/dashboard/${guildId}`} className="font-medium">
+      <nav className="flex gap-1 border-b border-border text-sm">
+        <Link href={`/dashboard/${guildId}`} aria-current="page" className="-mb-px border-b-2 border-accent px-3 py-2 font-medium">
           Live log
         </Link>
-        <Link href={`/dashboard/${guildId}/settings`} className="underline">
+        <Link href={`/dashboard/${guildId}/settings`} className="-mb-px border-b-2 border-transparent px-3 py-2 text-muted hover:text-foreground">
           Settings
         </Link>
       </nav>

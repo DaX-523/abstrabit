@@ -8,7 +8,7 @@ const POLL_INTERVAL_MS = 3000;
 const JOB_STATUS_STYLE: Record<string, string> = {
   succeeded: "text-green-700 dark:text-green-400",
   running: "text-blue-700 dark:text-blue-400",
-  pending: "text-black/60 dark:text-white/60",
+  pending: "text-muted",
   retrying: "text-amber-700 dark:text-amber-400",
   dead: "text-red-700 dark:text-red-400",
 };
@@ -64,31 +64,31 @@ export function LiveLog({ guildId, initialItems }: { guildId: string; initialIte
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 text-xs text-black/50 dark:text-white/50">
-        <span className={`inline-block h-2 w-2 rounded-full ${isLive ? "bg-green-500" : "bg-red-500"}`} />
+      <div className="flex items-center gap-2 text-xs text-muted">
+        <span className={`inline-block h-2 w-2 rounded-full ${isLive ? "animate-pulse bg-green-500" : "bg-red-500"}`} />
         {isLive ? "Live" : "Connection lost — retrying"}
       </div>
 
       {newestFirst.length === 0 ? (
-        <p className="text-sm text-black/60 dark:text-white/60">
+        <p className="card text-sm text-muted">
           No commands recorded yet. Run /report or /status in the server to see it appear here.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {newestFirst.map((item) => (
-            <li key={item.id} className="rounded-md border border-black/10 p-3 text-sm dark:border-white/20">
+            <li key={item.id} className="card p-4 text-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-mono font-medium">{describeInteraction(item)}</span>
-                <span className="text-xs text-black/50 dark:text-white/50">
+                <span className="text-xs text-muted">
                   {new Date(item.createdAt).toLocaleString()}
                 </span>
               </div>
-              <div className="text-xs text-black/60 dark:text-white/60">
+              <div className="text-xs text-muted">
                 {item.username ?? item.userId ?? "unknown user"} · {item.status}
                 {item.duplicateCount > 0 && ` · ${item.duplicateCount} duplicate deliver(ies) ignored`}
               </div>
               {item.jobs.length > 0 && (
-                <ul className="mt-2 flex flex-col gap-1 border-l border-black/10 pl-3 dark:border-white/20">
+                <ul className="mt-2 flex flex-col gap-1 border-l-2 border-border pl-3">
                   {item.jobs.map((job) => (
                     <li key={job.id} className="text-xs">
                       <span className="font-mono">{job.kind}</span>{" "}

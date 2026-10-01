@@ -17,14 +17,24 @@ channel), and shows it all on a login-gated dashboard with a live log.
    actually post embeds in) and optionally a **mirror**: a Slack Incoming Webhook or a Discord channel
    webhook. Both have a "Send test message" button.
 3. Users run commands in the server:
-   - **`/report <text>`** — records the report, defers the response within Discord's 3 s window, then
-     (via the job queue) edits the reply to "✅ Report recorded (priority: medium)", posts an embed to the
-     report channel, and mirrors a notice to the second channel.
-   - **`/status`** — ephemeral summary: is this server connected, which channel, open reports, your recent
-     reports, and failed actions in the last 24 h.
-4. The **dashboard** (login required, and only for servers you're an admin of) shows a live log, polled
-   every 3 s, of every interaction and each action it spawned: `reply`, `channel_post`, `mirror`, with
-   status, attempt count and last error.
+   - **`/report <text>`** — records the report, applies the server's **rules** (for example "text contains
+     *urgent* → priority high"), defers the response within Discord's 3 s window, then (via the job queue)
+     edits the reply to "✅ Report recorded (priority: high)", posts an embed to the report channel, and
+     mirrors a notice to the second channel.
+   - **`/report`** with no text opens a **form** (title + details) and files the report from it.
+   - **`/status`** — summary: is this server connected, which channel, open reports, your recent reports,
+     and failed actions in the last 24 h.
+4. The **dashboard** (login required, and only for servers you're an admin of) has four tabs per server:
+   - **Live log:** polled every 3 s, every interaction and each action it spawned (`reply`, `channel_post`,
+     `mirror`) with status, attempt count, next retry time, last error, and which rules fired.
+   - **Commands:** per-command settings (on/off, private or public reply, form on empty `/report`, post to
+     channel, mirror, per-person rate limit) and the ordered **rule editor** (keywords → set priority /
+     don't mirror / add a note to the reply).
+   - **Failures:** every reply, channel post or mirror that failed or needed retries, with the full attempt
+     history, and a **Retry now** button.
+   - **Settings:** report channel and mirror webhook, each with a "Send test message" button.
+5. Servers are isolated: each has its own channel, mirror, command settings, rules and admins, and the
+   dashboard only shows servers you administer.
 
 ## How it works
 
@@ -36,9 +46,9 @@ Discord ──POST──► /api/discord/interactions
   4. one DB transaction, under a 2.5 s deadline:
        INSERT interaction ... ON CONFLICT (id) DO NOTHING      ← dedup on Discord's interaction id
          └ already seen → return the stored first response, do nothing else
-       INSERT report, INSERT jobs (reply / channel_post / mirror)   ← "outbox": recorded atomically
+       apply rules → INSERT report, INSERT jobs (reply / channel_post / mirror)   ← "outbox": recorded atomically
      deadline exceeded / DB down → explicit ephemeral "Couldn't record this — try again" (never a silent timeout)
-  5. respond: deferred (type 5) for /report, inline (type 4) for /status
+  5. respond: deferred (type 5) for /report, a form (type 9) for /report with no text, inline (type 4) for /status
   6. after(response) → run the queued jobs immediately
 
 cron (every minute) ──► /api/cron/jobs → claim due jobs (FOR UPDATE SKIP LOCKED + lease) → run / retry
@@ -46,8 +56,9 @@ cron (every minute) ──► /api/cron/jobs → claim due jobs (FOR UPDATE SKIP
 
 Jobs retry with exponential backoff + jitter on network errors, timeouts, 429 (honouring `retry_after`) and
 5xx; anything else (e.g. a deleted webhook → 404) goes straight to `dead` with a readable error. Every
-attempt is recorded in `job_attempts`. Jobs that use the interaction token stop at 14.5 min, since Discord
-tokens expire at 15.
+attempt is recorded in `job_attempts`. Channel posts and mirrors keep retrying for 24 h; a `reply` stops at
+14.5 min, since the interaction token Discord gives it expires at 15. From the Failures tab an admin can
+retry a failed job immediately (a reply whose token has expired can't be, and the page says so).
 
 ## Quality bar → where it's handled → what proves it
 
@@ -62,6 +73,8 @@ tokens expire at 15.
 | Secrets never exposed | Env-only, validated by zod in `server-only` modules, nothing `NEXT_PUBLIC_`; mirror URLs AES-256-GCM encrypted at rest and only ever shown masked; JSON logs with key + regex redaction; gitleaks in CI | `src/lib/env.ts`, `src/lib/crypto.ts`, `src/lib/log.ts`, `.github/workflows/ci.yml` | `crypto.test.ts`, `log.test.ts`, gitleaks job |
 | Mentions can't be abused | `allowed_mentions: { parse: [] }` on every outgoing message | `src/lib/jobs/handlers/*`, `src/lib/mirror.ts` | handler tests |
 | Mirror URL can't be used for SSRF | Only `hooks.slack.com` / `discord.com/api/webhooks/` over https are ever fetched | `src/lib/mirror.ts` | `mirror.test.ts` |
+| Failures are visible, and recoverable | Every attempt stored; Failures tab lists failing/retried jobs with history; "Retry now" re-queues one and runs it immediately; scoped to the admin's own server | `src/lib/jobs/retry.ts`, `src/app/dashboard/[guildId]/failures/` | `retry.test.ts`, `dashboardActions.test.ts` |
+| Servers are isolated | Settings, rules, jobs and the live log are keyed by guild; every dashboard action re-checks the admin's membership *and* that the rule/job id belongs to that guild | `src/app/dashboard/[guildId]/guard.ts`, `.../commands/actions.ts` | `multiServer.test.ts`; `dashboardActions.test.ts` (forged rule/job ids from another server) |
 | Dashboard authz | `requireGuildAdmin()` in every page, action and API route (the proxy only redirects); OAuth takes the guild from Discord's token response, never from the query string; random `state` checked against an httpOnly cookie (CSRF) | `src/lib/auth.ts`, `src/app/api/discord/oauth/*` | `auth.test.ts`, `oauth.test.ts` |
 
 ## How to test it (graders)
@@ -70,12 +83,14 @@ tokens expire at 15.
 public repo so nobody else can log in and change the test server's settings. You can also create your own
 account at [/signup](https://astrabit-gamma.vercel.app/signup), which is open on the live deployment.
 
-**Option A: use our test server**
+**Option A: use test server**
 1. Join: `https://discord.gg/J5qAvYGHPM`
-2. In any channel run `/report the build is broken`, then `/status`.
+2. In any channel run `/report the build is broken`, then `/status`, then `/report` on its own (it opens a form).
 3. You should see an ephemeral "✅ Report recorded" reply, an embed in the report channel, and a notice in the
    mirror channel. On the dashboard (log in, then open the server) a new row appears within ~3 s with
    `reply`, `channel_post` and `mirror` all `succeeded`.
+4. Try a rule: `/report urgent: checkout is down` is filed at **high** priority (the log shows which rule
+   fired), while `/report there's a typo on the about page` is **low**. Edit the rules on the **Commands** tab.
 
 **Option B: add the bot to your own server**
 1. [Sign up](https://astrabit-gamma.vercel.app/signup), then **Dashboard → Connect a server** and pick your
@@ -103,8 +118,9 @@ account at [/signup](https://astrabit-gamma.vercel.app/signup), which is open on
   ```
 - **Downstream failure** (on your own server from Option B, since the test server's real mirror URL is
   masked and can't be restored): set the mirror to a deleted webhook and run `/report`. The reply and
-  channel post still succeed. The `mirror` row goes `dead` with a readable error instead of retrying
-  forever. A 5xx or network error instead shows `retrying · attempt n/8` until the sweep succeeds.
+  channel post still succeed. The `mirror` job goes `dead` with a readable error instead of retrying
+  forever, and appears on the **Failures** tab with every attempt. Fix the webhook in Settings and click
+  **Retry now**: it sends. A 5xx or network error instead shows `retrying · attempt n/8` until it succeeds.
 - **Duplicate delivery** can't be produced from outside, because only Discord can sign a valid request. It's
   covered by the sequential and concurrent duplicate tests above, against real Postgres semantics (PGlite).
 
@@ -115,7 +131,7 @@ Requires Node 20+.
 ```bash
 npm install
 cp .env.example .env.local          # then fill it in (see the table below)
-npm test                            # 137 tests: unit + integration on in-process PGlite, no env needed
+npm test                            # 224 tests: unit + integration on in-process PGlite, no env needed
 ```
 
 To run the app itself without installing Postgres, use the embedded database:
@@ -140,8 +156,6 @@ Other scripts: `npm run typecheck`, `npm run lint`, `npm run db:generate` (after
 
 ## Environment variables
 
-All are server-only. None is `NEXT_PUBLIC_`, and they're validated at first use by `src/lib/env.ts`. See
-`.env.example`.
 
 | Variable | What it is |
 |---|---|
@@ -180,20 +194,19 @@ All are server-only. None is `NEXT_PUBLIC_`, and they're validated at first use 
 
 ## Known limitations
 
-- **Stretch goals not built yet:** buttons, the `/report` modal (`/report` without text currently asks for
-  text), AI triage (Groq), the configurable rules engine and editor, and a Failures tab with "Retry now".
-  The data model already has `command_configs` and `rules` tables (seeded when a server is connected), but
-  nothing reads them yet.
-- **The "rule" is fixed, not configurable:** every report is filed at priority `medium`, and routing follows
-  the server's settings (post to the report channel if one is set, mirror if one is set, always reply).
-  Dashboard configuration is the report channel and the mirror.
-- **Partial multi-server support:** each connected server has its own channel, mirror and admins, and the
-  dashboard only shows your own servers. There are no dedicated isolation tests yet.
+- **Stretch goals not built:** interactive buttons (Acknowledge / Resolve on the channel post) and AI triage
+  (Groq). Everything else in the brief's list is built: configurable rules, the form, multi-server
+  isolation, and the failure history with retries. A button click already reaches the endpoint and is
+  signature-checked, but it just answers "This action isn't wired up yet".
+- **Rules are keyword-based:** a rule matches if the report contains any of its keywords. There's no
+  "severity" or "category" condition, since those would need the AI step. Rules only apply to `/report`.
+- **The `/report` form uses Discord's action-row layout**, which Discord has marked deprecated in favour of
+  label components. It works today, and the handler accepts both layouts when a form is submitted.
 - **Mirror and channel posts are at-least-once:** a crash between Discord's or Slack's 200 and marking the job
   done would send them again on retry. Dedup guarantees one set of jobs per interaction, not exactly-once
   delivery of each job. The planned `nonce` + `enforce_nonce` on channel posts wasn't implemented.
-- **Channel-post and mirror jobs give up at 14.5 min** (the same deadline as the interaction token), and
-  there's no "Retry now" yet, so a longer outage leaves them `dead` on the dashboard.
+- **Rate limits are approximate under heavy concurrency:** two reports from one person landing at the same
+  instant can both pass the check. It's a courtesy limit, not a security boundary.
 
 ## Repo map
 
@@ -202,10 +215,12 @@ src/app/api/discord/interactions/route.ts   signature check → handleInteractio
 src/app/api/discord/oauth/{start,callback}  "Connect a server"
 src/app/api/cron/jobs/route.ts              retry sweeper (POST from cron-job.org, GET from Vercel cron)
 src/app/api/health/route.ts                 DB + queue health, aggregate counts only
-src/app/dashboard/…                         server list, live log, settings (+ server actions)
+src/app/dashboard/…                         server list; per server: live log, commands + rules, failures, settings
 src/lib/discord/                            verify, REST client, OAuth, permission math, channel picker
-src/lib/interactions/                       dedup + dispatch, /report, /status
-src/lib/jobs/                               queue (enqueue/claim/lease), runner, backoff, handlers
+src/lib/interactions/                       dedup + dispatch, /report (+ form), /status
+src/lib/rules.ts                            the rules engine: pure and unit-tested
+src/lib/commandConfig.ts, guildSetup.ts     per-server command settings and first-connect defaults
+src/lib/jobs/                               queue (enqueue/claim/lease), runner, backoff, retry, handlers
 src/lib/{crypto,log,env,auth,deadline,mirror,feed}.ts
 src/db/                                     Drizzle schema + client (postgres.js or PGlite)
 scripts/                                    register-commands, seed, smoke-live

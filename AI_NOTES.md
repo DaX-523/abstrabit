@@ -7,7 +7,7 @@ I used **Claude Code** (terminal agent): mostly **Opus 5.5** for planning and **
 this Next version differs from their training data) and [`docs/PLAN.md`](docs/PLAN.md).
 
 - **What I decided:**
-  - Set the scope and stack. I chose Next.js + TypeScript, and aim was to stretch goals, but core first.
+  - Set the scope and stack. I chose Next.js + TypeScript with drizzle as I'm adapt to it, and aim was to stretch goals, but core first.
   - Reviewed, asked claude for minor changes and approved the plan before any code was written.
   - Created/Reused every account (Discord app, Supabase, Groq, Vercel) and set the env vars.
   - Did the live testing in Discord.
@@ -72,9 +72,8 @@ the old code redirected twice and ended on the error URL.
 
 ## With more time
 
-- **Stretch goals:** buttons, the `/report` modal, Groq triage with a fallback, a Failures tab with
-  "Retry now", and above all a configurable rules editor. The tables exist; today every report is filed at
-  priority `medium`.
+- **Stretch goals:** buttons (Acknowledge / Resolve) and Groq triage with a fallback. The rest of the list
+  is done. The rule engine is keyword-only, because severity and category conditions need the AI step.
 - **Tests:** CI against a real Postgres, since PGlite hid a production bug, and a browser test of the
   dashboard actions, which is the class of bug I caught by hand.
 

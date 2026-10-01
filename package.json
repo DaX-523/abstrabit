@@ -14,7 +14,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "discord:register": "tsx --conditions=react-server scripts/register-commands.ts",
-    "seed": "tsx --conditions=react-server scripts/seed.ts"
+    "seed": "tsx --conditions=react-server scripts/seed.ts",
+    "smoke-live": "tsx scripts/smoke-live.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

@@ -3,6 +3,10 @@
  * grading/demo access, from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD. Safe to
  * re-run -- upserts rather than failing if the account already exists.
  *
+ * Optional SEED_GUILD_ID: also make this account an admin of that
+ * already-connected server, so a grader can log in and see its live log
+ * without going through the Discord OAuth connect flow themselves.
+ *
  * Usage: npm run seed
  */
 import { config } from "dotenv";
@@ -31,12 +35,26 @@ async function main() {
     where: (u, { sql }) => sql`lower(${u.email}) = lower(${email})`,
   });
 
+  let userId: string;
   if (existing) {
     await db.update(schema.users).set({ passwordHash }).where(eq(schema.users.id, existing.id));
+    userId = existing.id;
     console.log(`Updated password for existing admin: ${email}`);
   } else {
-    await db.insert(schema.users).values({ email, passwordHash });
+    const [created] = await db.insert(schema.users).values({ email, passwordHash }).returning();
+    userId = created.id;
     console.log(`Created admin: ${email}`);
+  }
+
+  const guildId = process.env.SEED_GUILD_ID;
+  if (guildId) {
+    const guild = await db.query.guilds.findFirst({ where: (g, { eq }) => eq(g.id, guildId) });
+    if (!guild) {
+      console.error(`No server with id ${guildId} -- connect it from the dashboard first.`);
+      process.exit(1);
+    }
+    await db.insert(schema.guildAdmins).values({ guildId, userId }).onConflictDoNothing();
+    console.log(`Linked ${email} as an admin of "${guild.name}".`);
   }
 }
 

@@ -33,3 +33,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return new NextResponse("internal error", { status: 500 });
   }
 }
+
+/**
+ * Vercel's own cron (the daily backstop in vercel.json) always invokes with
+ * GET, sending the same `Authorization: Bearer $CRON_SECRET` header, so GET
+ * gets the identical auth check and sweep.
+ */
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  return POST(req);
+}

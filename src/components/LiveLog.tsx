@@ -87,6 +87,9 @@ export function LiveLog({ guildId, initialItems }: { guildId: string; initialIte
                 {item.username ?? item.userId ?? "unknown user"} · {item.status}
                 {item.duplicateCount > 0 && ` · ${item.duplicateCount} duplicate deliver(ies) ignored`}
               </div>
+              {item.ruleMatches.length > 0 && (
+                <div className="mt-1 text-xs text-muted">Rule applied: {item.ruleMatches.join("; ")}</div>
+              )}
               {item.jobs.length > 0 && (
                 <ul className="mt-2 flex flex-col gap-1 border-l-2 border-border pl-3">
                   {item.jobs.map((job) => (
@@ -94,6 +97,7 @@ export function LiveLog({ guildId, initialItems }: { guildId: string; initialIte
                       <span className="font-mono">{job.kind}</span>{" "}
                       <span className={JOB_STATUS_STYLE[job.status] ?? ""}>{job.status}</span>
                       {job.attempts > 0 && ` · attempt ${job.attempts}/${job.maxAttempts}`}
+                      {job.status === "retrying" && ` · next try ${new Date(job.runAt).toLocaleTimeString()}`}
                       {job.lastError && <span className="text-red-600"> · {job.lastError}</span>}
                     </li>
                   ))}

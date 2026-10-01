@@ -21,10 +21,22 @@ export interface FeedItem {
   status: string;
   duplicateCount: number;
   createdAt: string;
+  /** Summaries of the configured rules that matched this command, if any. */
+  ruleMatches: string[];
   jobs: FeedJob[];
 }
 
 const DEFAULT_LIMIT = 50;
+
+/** `interactions.rule_matches` is untrusted-shape jsonb; keep only well-formed summaries. */
+function ruleMatchSummaries(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((m) =>
+    typeof m === "object" && m !== null && typeof (m as { summary?: unknown }).summary === "string"
+      ? [(m as { summary: string }).summary]
+      : [],
+  );
+}
 
 /**
  * The live log's data source, shared by the dashboard page's initial
@@ -62,6 +74,7 @@ export async function getRecentInteractions(
     status: row.status,
     duplicateCount: row.duplicateCount,
     createdAt: row.createdAt.toISOString(),
+    ruleMatches: ruleMatchSummaries(row.ruleMatches),
     jobs: row.jobs
       .slice()
       .sort((a: typeof schema.jobs.$inferSelect, b: typeof schema.jobs.$inferSelect) => a.createdAt.getTime() - b.createdAt.getTime())

@@ -1,29 +1,20 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
-import { requireGuildAdmin, AuthError } from "@/lib/auth";
 import { encrypt } from "@/lib/crypto";
 import { detectMirrorKind, sendMirror } from "@/lib/mirror";
 import { postChannelMessage } from "@/lib/discord/api";
 import { listPostableChannels } from "@/lib/discord/channels";
 import { log } from "@/lib/log";
+import { guardedGuildId, redirectWithMessage } from "./guard";
 
 function settingsPath(guildId: string): string {
   return `/dashboard/${guildId}/settings`;
 }
 
 function redirectWithParam(guildId: string, key: "success" | "error", message: string): never {
-  redirect(`${settingsPath(guildId)}?${key}=${encodeURIComponent(message)}`);
-}
-
-async function guardedGuildId(formData: FormData): Promise<string> {
-  const guildId = String(formData.get("guildId") ?? "");
-  if (!guildId) throw new AuthError("Missing guild id");
-  const db = getDb();
-  await requireGuildAdmin(db, guildId); // throws AuthError if not an admin of this guild
-  return guildId;
+  redirectWithMessage(settingsPath(guildId), key, message);
 }
 
 export async function updateChannelAction(formData: FormData): Promise<void> {

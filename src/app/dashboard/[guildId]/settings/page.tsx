@@ -1,11 +1,11 @@
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
 import { getDb } from "@/db";
 import { requireGuildAdmin, AuthError } from "@/lib/auth";
 import { maskUrl, decrypt } from "@/lib/crypto";
 import { listPostableChannels } from "@/lib/discord/channels";
 import { log } from "@/lib/log";
 import { SubmitButton } from "@/components/SubmitButton";
+import { GuildHeader } from "@/components/GuildHeader";
 import { updateChannelAction, updateMirrorAction, testChannelAction, testMirrorAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -44,12 +44,7 @@ export default async function SettingsPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-4 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{guild.name}</h1>
-        <Link href="/dashboard" className="link text-sm">
-          ← All servers
-        </Link>
-      </div>
+      <GuildHeader guildId={guildId} name={guild.name} active="settings" />
 
       {success && (
         <p role="status" className="alert-success">
@@ -61,15 +56,6 @@ export default async function SettingsPage({
           {error}
         </p>
       )}
-
-      <nav className="flex gap-1 border-b border-border text-sm">
-        <Link href={`/dashboard/${guildId}`} className="-mb-px border-b-2 border-transparent px-3 py-2 text-muted hover:text-foreground">
-          Live log
-        </Link>
-        <Link href={`/dashboard/${guildId}/settings`} aria-current="page" className="-mb-px border-b-2 border-accent px-3 py-2 font-medium">
-          Settings
-        </Link>
-      </nav>
 
       <section className="card flex flex-col gap-3">
         <h2 className="font-semibold">Report channel</h2>

@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 const VARIANT_CLASS = {
   primary: "btn-primary",
   secondary: "btn-secondary",
+  danger: "btn-danger",
 } as const;
 
 /**
@@ -16,14 +17,16 @@ export function SubmitButton({
   children,
   pendingText,
   variant = "primary",
+  small = false,
 }: {
   children: React.ReactNode;
   pendingText?: string;
   variant?: keyof typeof VARIANT_CLASS;
+  small?: boolean;
 }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} aria-busy={pending} className={VARIANT_CLASS[variant]}>
+    <button type="submit" disabled={pending} aria-busy={pending} className={`${VARIANT_CLASS[variant]}${small ? " btn-sm" : ""}`}>
       {pending && (
         <span
           aria-hidden

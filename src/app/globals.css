@@ -72,6 +72,13 @@ button:disabled,
   .btn-secondary {
     @apply btn border border-border bg-surface hover:bg-foreground/5;
   }
+  .btn-danger {
+    @apply btn border border-red-300 bg-surface text-red-700 hover:bg-red-50
+      dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950;
+  }
+  .btn-sm {
+    @apply px-3 py-1 text-xs;
+  }
   .link {
     @apply cursor-pointer font-medium text-accent underline-offset-4 hover:underline;
   }

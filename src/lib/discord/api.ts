@@ -5,6 +5,16 @@ import { RetryableError, PermanentError } from "@/lib/jobs/runner";
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
 /**
+ * Interaction webhook paths look like `/webhooks/<application id>/<interaction
+ * token>/messages/@original`, and the token is a 15-minute credential. Error
+ * messages end up in `jobs.last_error`, `job_attempts.error`, the dashboard
+ * and logs, so the token must never be part of them.
+ */
+export function redactInteractionToken(path: string): string {
+  return path.replace(/(\/webhooks\/\d+\/)[^/?\s]+/g, "$1[token]");
+}
+
+/**
  * A thin wrapper over fetch for calls to Discord's bot REST API. Classifies
  * every failure so job handlers that call these functions get the right
  * retry behavior for free: network errors and 5xx are retried with backoff,
@@ -20,11 +30,14 @@ async function discordFetch(path: string, init: RequestInit = {}): Promise<Respo
     headers.set("Content-Type", "application/json");
   }
 
+  // Only ever put this (never `path`) into an error message.
+  const safePath = redactInteractionToken(path);
+
   let res: Response;
   try {
     res = await fetch(`${DISCORD_API_BASE}${path}`, { ...init, headers });
   } catch (err) {
-    throw new RetryableError(`network error calling Discord (${path}): ${String(err)}`);
+    throw new RetryableError(`network error calling Discord (${safePath}): ${String(err)}`);
   }
 
   if (res.status === 429) {
@@ -35,16 +48,16 @@ async function discordFetch(path: string, init: RequestInit = {}): Promise<Respo
     } catch {
       // fall through with the default
     }
-    throw new RetryableError(`Discord rate limited (${path})`, { retryAfterMs, httpStatus: 429 });
+    throw new RetryableError(`Discord rate limited (${safePath})`, { retryAfterMs, httpStatus: 429 });
   }
 
   if (res.status >= 500) {
-    throw new RetryableError(`Discord ${res.status} on ${path}`, { httpStatus: res.status });
+    throw new RetryableError(`Discord ${res.status} on ${safePath}`, { httpStatus: res.status });
   }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new PermanentError(`Discord ${res.status} on ${path}: ${text.slice(0, 300)}`, {
+    throw new PermanentError(`Discord ${res.status} on ${safePath}: ${text.slice(0, 300)}`, {
       httpStatus: res.status,
     });
   }

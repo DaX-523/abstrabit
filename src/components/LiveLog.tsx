@@ -93,7 +93,7 @@ export function LiveLog({ guildId, initialItems }: { guildId: string; initialIte
               {item.jobs.length > 0 && (
                 <ul className="mt-2 flex flex-col gap-1 border-l-2 border-border pl-3">
                   {item.jobs.map((job) => (
-                    <li key={job.id} className="text-xs">
+                    <li key={job.id} className="text-xs [overflow-wrap:anywhere]">
                       <span className="font-mono">{job.kind}</span>{" "}
                       <span className={JOB_STATUS_STYLE[job.status] ?? ""}>{job.status}</span>
                       {job.attempts > 0 && ` · attempt ${job.attempts}/${job.maxAttempts}`}

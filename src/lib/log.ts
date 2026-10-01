@@ -46,6 +46,8 @@ const SECRET_SHAPED_PATTERNS: RegExp[] = [
   /\b(Bearer|Bot)\s+[A-Za-z0-9._-]{20,}/g,
   // Slack/Discord webhook URLs (host + path is enough to redact, keep nothing)
   /https:\/\/(hooks\.slack\.com|discord(?:app)?\.com\/api\/webhooks)\/\S+/g,
+  // An interaction webhook path: /webhooks/<application id>/<interaction token>
+  /\/webhooks\/\d+\/[\w-]{20,}/g,
 ];
 
 function redactString(value: string): string {

@@ -148,7 +148,7 @@ export default async function FailuresPage({
                 </p>
 
                 {job.lastError && job.status !== "succeeded" && (
-                  <p className="rounded-lg bg-red-50 px-3 py-2 font-mono text-xs text-red-800 dark:bg-red-950 dark:text-red-200">
+                  <p className="rounded-lg bg-red-50 px-3 py-2 font-mono text-xs text-red-800 [overflow-wrap:anywhere] dark:bg-red-950 dark:text-red-200">
                     {job.lastError}
                   </p>
                 )}
@@ -161,7 +161,7 @@ export default async function FailuresPage({
                     <summary className="text-muted">Attempt history ({history.length})</summary>
                     <ul className="mt-2 flex flex-col gap-1 border-l-2 border-border pl-3">
                       {history.map((a) => (
-                        <li key={a.id}>
+                        <li key={a.id} className="[overflow-wrap:anywhere]">
                           <span className="font-mono">#{a.attemptNumber}</span> {a.outcome}
                           {a.httpStatus ? ` · HTTP ${a.httpStatus}` : ""}
                           {a.durationMs !== null ? ` · ${a.durationMs} ms` : ""} · {fmt(a.createdAt)}

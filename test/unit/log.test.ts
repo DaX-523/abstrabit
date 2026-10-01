@@ -26,6 +26,11 @@ describe("redactForLog", () => {
     expect(redactForLog(url)).toBe("[redacted]");
   });
 
+  it("redacts an interaction-token webhook path, even without a recognisable token shape", () => {
+    const token = "a".repeat(70);
+    expect(redactForLog(`Discord 404 on /webhooks/1554818516253806672/${token}/messages/@original`)).not.toContain(token);
+  });
+
   it("leaves ordinary text untouched", () => {
     expect(redactForLog("the server is /report happy")).toBe("the server is /report happy");
   });

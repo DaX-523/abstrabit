@@ -71,4 +71,51 @@ describe("discord/api", () => {
     const result = await postChannelMessage("chan-1", {});
     expect(result).toEqual({ id: "msg-1" });
   });
+
+  describe("never puts the interaction token in an error message", () => {
+    // A realistic-length interaction token (they're ~70+ url-safe characters).
+    const token = ["aW50ZXJhY3Rpb246MTU1NDg", "1ODUxNjI1MzgwNjY3Mjo", "xYWJjZGVmZ2hpamtsbW5vcA"].join("");
+    const call = async () => {
+      const { patchOriginalResponse } = await import("@/lib/discord/api");
+      return patchOriginalResponse("1554818516253806672", token, { content: "hi" }).then(
+        () => new Error("expected the call to fail"),
+        (e: Error) => e,
+      );
+    };
+
+    it("on a permanent 4xx (the case seen on the dashboard)", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"message":"Unknown Webhook"}', { status: 404 })));
+      const err = await call();
+      expect(err).toBeInstanceOf(PermanentError);
+      expect(err.message).not.toContain(token);
+      expect(err.message).toContain("/webhooks/1554818516253806672/[token]/messages/@original");
+      expect(err.message).toContain("Unknown Webhook"); // the useful part is kept
+    });
+
+    it("on a 5xx, which is retried and so is stored while the token is still valid", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("oops", { status: 503 })));
+      const err = await call();
+      expect(err).toBeInstanceOf(RetryableError);
+      expect(err.message).not.toContain(token);
+    });
+
+    it("on a 429", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status: 429 })));
+      const err = await call();
+      expect(err.message).not.toContain(token);
+    });
+
+    it("on a network error", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network down")));
+      const err = await call();
+      expect(err).toBeInstanceOf(RetryableError);
+      expect(err.message).not.toContain(token);
+    });
+
+    it("but leaves ordinary paths (channel ids) readable", async () => {
+      const { redactInteractionToken } = await import("@/lib/discord/api");
+      expect(redactInteractionToken("/channels/123/messages")).toBe("/channels/123/messages");
+      expect(redactInteractionToken(`/webhooks/42/${token}?wait=true`)).toBe("/webhooks/42/[token]?wait=true");
+    });
+  });
 });

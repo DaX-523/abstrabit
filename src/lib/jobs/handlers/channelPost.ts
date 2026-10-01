@@ -31,7 +31,7 @@ export const channelPostHandler: JobHandler = async (payload) => {
   }
 
   const embed = {
-    title: "New report",
+    title: report.title ?? "New report",
     description: report.body.slice(0, 4000),
     color: PRIORITY_COLOR[report.priority] ?? PRIORITY_COLOR.medium,
     fields: [

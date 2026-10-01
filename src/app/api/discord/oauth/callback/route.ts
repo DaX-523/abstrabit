@@ -3,6 +3,7 @@ import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { exchangeOAuthCode } from "@/lib/discord/oauth";
 import { log } from "@/lib/log";
+import { seedGuildDefaults } from "@/lib/guildSetup";
 import { OAUTH_STATE_COOKIE } from "../start/route";
 
 export const runtime = "nodejs";
@@ -59,13 +60,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       .insert(schema.guildAdmins)
       .values({ guildId: guild.id, userId: user.id })
       .onConflictDoNothing({ target: [schema.guildAdmins.guildId, schema.guildAdmins.userId] });
-    await tx
-      .insert(schema.commandConfigs)
-      .values([
-        { guildId: guild.id, command: "report" },
-        { guildId: guild.id, command: "status" },
-      ])
-      .onConflictDoNothing({ target: [schema.commandConfigs.guildId, schema.commandConfigs.command] });
+    await seedGuildDefaults(tx, guild.id);
   });
 
   log.info("guild connected", { guildId: guild.id, userId: user.id });

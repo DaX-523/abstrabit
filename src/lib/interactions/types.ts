@@ -13,4 +13,6 @@ export interface JobSpec {
 export interface CommandPlan {
   response: InteractionResponseBody;
   jobs: JobSpec[];
+  /** Which configured rules matched, stored on the interaction for the dashboard's log. */
+  ruleMatches?: Array<{ id: string; summary: string }>;
 }

@@ -1,12 +1,18 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { schema, type Queryable } from "@/db";
-import { ephemeralMessage, getInteractionUser, type Interaction } from "@/lib/discord/types";
+import { channelMessage, ephemeralMessage, getInteractionUser, type Interaction } from "@/lib/discord/types";
+import { getCommandConfig } from "@/lib/commandConfig";
 import type { CommandPlan } from "./types";
 
 export async function planStatus(tx: Queryable, interaction: Interaction): Promise<CommandPlan> {
   const guildId = interaction.guild_id;
   if (!guildId) {
     return { response: ephemeralMessage("This command only works inside a server."), jobs: [] };
+  }
+
+  const config = await getCommandConfig(tx, guildId, "status");
+  if (!config.enabled) {
+    return { response: ephemeralMessage("/status is turned off on this server."), jobs: [] };
   }
 
   const guild = await tx.query.guilds.findFirst({ where: (g, { eq }) => eq(g.id, guildId) });
@@ -65,5 +71,5 @@ export async function planStatus(tx: Queryable, interaction: Interaction): Promi
     lines.push("You haven't filed any reports yet.");
   }
 
-  return { response: ephemeralMessage(lines.join("\n")), jobs: [] };
+  return { response: channelMessage(lines.join("\n"), config.ephemeral), jobs: [] };
 }

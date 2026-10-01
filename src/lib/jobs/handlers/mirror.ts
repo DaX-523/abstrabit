@@ -29,6 +29,7 @@ export const mirrorHandler: JobHandler = async (payload) => {
   await sendMirror(url, {
     title: `New report in ${guild.name}`,
     lines: [
+      ...(report.title ? [`Title: ${report.title}`] : []),
       `Priority: ${report.priority}`,
       `From: ${report.authorUsername ?? report.authorId}`,
       report.body.slice(0, 500),

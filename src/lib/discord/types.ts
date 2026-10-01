@@ -84,8 +84,34 @@ export function getStringOption(interaction: Interaction, name: string): string 
 }
 
 export function ephemeralMessage(content: string): InteractionResponseBody {
+  return channelMessage(content, true);
+}
+
+/** An immediate reply; visible only to the caller when `ephemeral`. */
+export function channelMessage(content: string, ephemeral: boolean): InteractionResponseBody {
   return {
     type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-    data: { content, flags: EPHEMERAL_FLAG, allowed_mentions: { parse: [] } },
+    data: {
+      content,
+      ...(ephemeral ? { flags: EPHEMERAL_FLAG } : {}),
+      allowed_mentions: { parse: [] },
+    },
   };
+}
+
+/**
+ * A text input's submitted value from a MODAL_SUBMIT payload. Handles both
+ * layouts Discord uses: inputs wrapped in action rows (`components[].components[]`)
+ * and in labels (`components[].component`).
+ */
+export function getModalValue(interaction: Interaction, customId: string): string | undefined {
+  for (const row of interaction.data?.components ?? []) {
+    const r = row as { components?: unknown; component?: unknown };
+    const inputs = Array.isArray(r.components) ? r.components : r.component ? [r.component] : [];
+    for (const input of inputs) {
+      const i = input as { custom_id?: unknown; value?: unknown };
+      if (i.custom_id === customId && typeof i.value === "string") return i.value;
+    }
+  }
+  return undefined;
 }

@@ -74,10 +74,11 @@ describe("handleInteraction: /report", () => {
     expect(new Set(jobs.map((j) => j.kind))).toEqual(new Set(["reply", "channel_post", "mirror"]));
   });
 
-  it("rejects with a helpful ephemeral message when no text is given, without creating a report", async () => {
+  it("opens the report form (a modal) when no text is given, without creating a report", async () => {
     const payload = reportInteraction({ data: { name: "report", options: [] } });
     const response = await handleInteraction(db, payload);
-    expect(response.data?.content).toMatch(/include some text/i);
+    expect(response.type).toBe(9); // MODAL
+    expect(response.data?.custom_id).toBe("report_modal");
 
     const report = await db.query.reports.findFirst({
       where: (r, { eq }) => eq(r.interactionId, payload.id),

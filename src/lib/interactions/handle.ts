@@ -8,11 +8,12 @@ import {
   InteractionType,
   ephemeralMessage,
   getInteractionUser,
+  getModalValue,
   getStringOption,
   type Interaction,
   type InteractionResponseBody,
 } from "@/lib/discord/types";
-import { planReport } from "./report";
+import { planReport, REPORT_MODAL_ID } from "./report";
 import { planStatus } from "./status";
 import type { CommandPlan } from "./types";
 
@@ -65,7 +66,7 @@ async function processInteraction(tx: Queryable, interaction: Interaction): Prom
       type: interaction.type,
       command: interaction.data?.name,
       customId: interaction.data?.custom_id,
-      inputText: getStringOption(interaction, "text"),
+      inputText: getStringOption(interaction, "text") ?? getModalValue(interaction, "details"),
       status: "processing",
     })
     .onConflictDoNothing({ target: schema.interactions.id })
@@ -79,7 +80,7 @@ async function processInteraction(tx: Queryable, interaction: Interaction): Prom
 
   await tx
     .update(schema.interactions)
-    .set({ initialResponse: plan.response, status: "completed" })
+    .set({ initialResponse: plan.response, status: "completed", ruleMatches: plan.ruleMatches })
     .where(eq(schema.interactions.id, interaction.id));
 
   for (const job of plan.jobs) {
@@ -122,8 +123,13 @@ async function computePlan(tx: Queryable, interaction: Interaction): Promise<Com
     return { response: ephemeralMessage("This action isn't wired up yet."), jobs: [] };
   }
   if (interaction.type === InteractionType.MODAL_SUBMIT) {
-    // The /report modal (for when no inline text is given) lands in a later step.
-    return { response: ephemeralMessage("This form isn't wired up yet."), jobs: [] };
+    if (interaction.data?.custom_id === REPORT_MODAL_ID) {
+      return planReport(tx, interaction, interaction.id, {
+        title: getModalValue(interaction, "title"),
+        text: getModalValue(interaction, "details"),
+      });
+    }
+    return { response: ephemeralMessage("Unknown form."), jobs: [] };
   }
   return { response: ephemeralMessage("Unsupported interaction type."), jobs: [] };
 }
